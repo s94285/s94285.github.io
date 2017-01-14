@@ -1,14 +1,36 @@
 <!DOCTYPE html>
 <html><head><title>s94285's github page</title></head>
 <body>
+<script type="text/javascript">
+  function SetCwinHeight()
+{
+var iframeid=document.getElementById("mainframe"); //iframe id
+  if (document.getElementById)
+  {   
+   if (iframeid && !window.opera)
+   {   
+    if (iframeid.contentDocument && iframeid.contentDocument.body.offsetHeight)
+     {   
+       iframeid.height = iframeid.contentDocument.body.offsetHeight;   
+     }else if(iframeid.Document && iframeid.Document.body.scrollHeight)
+     {   
+       iframeid.height = iframeid.Document.body.scrollHeight;   
+      }   
+    }
+   }
+}
+</script>
 
-<iframe height="700px" width="100%" src="https://s94285coding.blogspot.tw" style="bolder:none" name="iframe_a"></iframe>
-<!--<iframe height="300px" width="100%" src="demo_iframe.htm" name="iframe_a"></iframe>-->
-
-<p><a href="https://s94285coding.blogspot.tw" target="iframe_a">s94285coding Blog</a>
+<h1><b>Welcome to My GitHub</b></h1> 
+<p><a href="https://s94285coding.blogspot.tw">s94285coding Blog</a>
 <a href="http://www.facebook.com/s94285">Facebook</a>
 <a href="http://github.com/s94285">GitHub</a></p>
-  <h1><b>Welcome to My GitHub</b></h1>
+
+<iframe src="https://s94285coding.blogspot.tw" width="100%" marginwidth="0" marginheight="0" style="bolder:none" onload="Javascript:SetCwinHeight()"  scrolling="no" frameborder="0" id="mainframe" ></iframe>
+<!--<iframe height="300px" width="100%" src="demo_iframe.htm" name="iframe_a"></iframe>-->
+
+<!--<iframe src="./NEWS" name="mainframe" width="100%" marginwidth="0" marginheight="0" onload="Javascript:SetCwinHeight()"  scrolling="No" frameborder="0" id="mainframe"  ></iframe>-->
+
 
 </body>
 </html>
