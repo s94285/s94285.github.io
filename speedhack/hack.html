@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <title>Speed Hack</title>
+    <script src="raphael.js"></script>
+    <script src="multithread.js"></script>
+</head>
+<body>
+    <!-- Array Size: -->
+    <!-- <input type="number" id="row" onchange="showMaze()"> x <input type="number" id="col" onchange="showMaze()"> -->
+    <!-- <br> -->
+    BufferSize: <input type="number" id="bufferSize" value="8"><br>
+    <textarea id="input_maze" oninput="upper(this.id)" style="width: 200pt;height: 200pt;font-size: 15pt">7A BD 7A 7A 55 55
+1C 7A E9 1C 7A 7A
+55 BD E9 1C E9 E9
+1C 7A 55 1C 1C 7A
+7A BD E9 E9 E9 BD
+1C BD 55 BD 1C BD</textarea><br>
+    <textarea id="input_target" oninput="upper(this.id)" style="width: 200pt;height: 100pt;font-size: 15pt">BD 7A 1C
+7A 7A 55
+1C 55 7A</textarea><br>
+    <button onclick="calculate()">Start</button><br><br>
+    <div id="draw" style="height: 350px;width: 350px;border: 2px black solid;"></div>
+</body>
+<script>
+let num_threads = 2;
+let rowNum;
+let colNum;
+const ROW = false;
+const COL = true;
+var paper = null;
+let MT = new Multithread(num_threads);
+const keyDict = {'B':'D','7':'A','1':'C','5':'5','E':'9','F':'F'};
+class State{
+    /**Create Init state (first row) 
+     * @param {string[][]} element_arr */
+    constructor(element_arr){
+        /** @type {string[][]} */ this.element_arr = element_arr.map(arr => arr.slice());
+        /** @type {string} */ this.sequence = '';
+        /** @type {boolean} */ this.dir = ROW;
+        /** @type {number} */ this.index = 0;
+        /** @type {number[]} */ this.steps = [];
+    }
+    toString(){
+        let result = '';
+        for(let e of this.element_arr)
+            result += e.join('');
+        return result;
+    }
+    nextStates(){
+        let arr = [];
+        for(let i=0;i<rowNum;i++){
+            let next = new State(this.element_arr);
+            if(this.dir==ROW){
+                if(next.element_arr[this.index][i] == 'KK')continue;
+                next.sequence = this.sequence + next.element_arr[this.index][i];
+                next.element_arr[this.index][i] = 'KK';
+                next.dir = COL;
+            }else{
+                if(next.element_arr[i][this.index] == 'KK')continue;
+                next.sequence = this.sequence + next.element_arr[i][this.index];
+                next.element_arr[i][this.index] = 'KK';
+                next.dir = ROW;
+            }
+            next.steps = this.steps.concat(i);
+            next.index = i;
+            arr.push(next);
+        }
+        return arr;
+    }
+}
+class Solver{
+    /** @param {string[][]} element_arr
+      * @param {string[]} target_strings
+      * @param {string} bufferSize */
+    constructor(element_arr, target_strings, bufferSize){
+        /** @type {number} */ this.bufferSize = bufferSize;
+        /** @type {string[]} */ this.target_strings = target_strings;
+        /** @type {State} */ this.initState = new State(element_arr);
+        /** @type {Set.<string>} */ this.seenStates = new Set();
+        // console.log(this.initState.toString());
+        // console.log(this.seenStates.has(this.initState.toString()));
+    }
+    /** @param {State} state */
+    stateTooLong(state){return state.sequence.length > this.bufferSize*2;}
+    /** @param {State} state */
+    stateExists(state){return this.seenStates.has(state.toString());}
+    /** @param {State} state */
+    stateCompare(state){
+        let result = 0;
+        let sequence = state.sequence;
+        for(let s of this.target_strings)
+            if(sequence.includes(s))result++;
+        return result;
+    }
+
+    solve(){
+        return this.solveHelper(this.initState);
+    }
+
+    /**@param {State} state*/
+    solveHelper(state){
+        if(this.stateExists(state))return false;
+        this.seenStates.add(state.toString());
+        // console.log(state.toString());
+        // console.log(state.sequence);
+        if(this.stateTooLong(state))return false;
+        if(this.stateCompare(state) >= 3){
+            return state;
+        }
+        for(let s of state.nextStates()){
+            let res = this.solveHelper(s);
+            if(res!=false)return res;
+        }
+        return false;
+    }
+}
+function calculate(){
+    // console.log("changed");
+    // rowNum = document.getElementById("row").value;
+    // colNum = document.getElementById("col").value;
+    console.log("start");
+    let bufferSize = document.getElementById('bufferSize').value;
+    let maze_text = document.getElementById("input_maze").value.toUpperCase();
+    let target_text = document.getElementById("input_target").value.toUpperCase();
+    console.log(maze_text);
+    console.log(target_text);
+    const element_arr = maze_text.split('\n');
+    const target_strings = target_text.split('\n');
+    // console.log(element_arr);
+    for(let i in element_arr)
+        element_arr[i] = element_arr[i].split(' ');
+    rowNum = colNum = element_arr[0].length;
+    for(let i in target_strings)
+        target_strings[i] = target_strings[i].split(' ').join('');
+    // console.log(element_arr);
+    console.log(target_strings);
+    solver = new Solver(element_arr,target_strings,bufferSize);
+    let ansState = solver.solve();
+    if(ansState!=false){
+        console.log(ansState.sequence);
+        console.log(ansState.steps.toString());
+        draw(element_arr, ansState.steps.slice());
+    }else
+        alert("No Solution");
+}
+/**@param {string[][]} maze
+ * @param {number[]} steps*/
+function draw(maze, steps){
+    steps = [0].concat(steps);
+    let getX = (j) => 25+j*50;
+    let getY = (i) => 25+i*50;
+    let drawAns = (x,y,ans) => paper.text(x,y,String(ans)).attr({"fill": "#f00", "opacity": "0.7", "font-family": "arial", "font-size": 35, "font-weight": "800"});
+    let drawDiv = document.getElementById('draw');
+    drawDiv.style.width = drawDiv.style.height = String(rowNum*50)+'px';
+    let box = drawDiv.getBoundingClientRect();
+    console.log(box);
+    // Creates canvas 320 × 200 at 10, 50
+    if(paper==null) paper = Raphael(box.left, box.top, box.width, box.height);
+    else{
+        paper.clear();
+        paper = Raphael(box.left, box.top, box.width, box.height);
+    }
+    for(let i in maze)
+        for(let j in maze[i]){
+            paper.text(getX(j),getY(i),maze[i][j]).attr({"font-family": "consolas", "font-size": 30});
+        }
+    for(let i in steps){
+        if(i==0)continue;
+        console.log(i,steps[i]);
+        if(i%2==1){
+            drawAns(getX(steps[i]),getY(steps[i-1]),i);
+        }else{
+            drawAns(getX(steps[i-1]),getY(steps[i]),i);
+        }
+    }
+    // Creates circle at x = 50, y = 40, with radius 10
+    // var circle = paper.circle(getX(0), getY(0), 30);
+    // Sets the fill attribute of the circle to red (#f00)
+    // circle.attr("fill", "#f00");
+    // circle.attr("opacity", "0.5");
+
+    // Sets the stroke attribute of the circle to white
+    // circle.attr("stroke", "#f00");
+}
+function upper(id){
+    let e = document.getElementById(id);
+    /** @type {string}*/let text = e.value.toUpperCase();
+    if(text.length==1 || [' ','\n'].includes(text.charAt(text.length-2)))
+        if(text.charAt(text.length-1) in keyDict)
+            text += keyDict[text.charAt(text.length-1)];
+    e.value = text;
+}
+</script>
